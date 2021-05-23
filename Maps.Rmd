@@ -1,0 +1,177 @@
+---
+title: "IRTM project"
+author: "George Fakas i6260280"
+date: "13/5/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+libraries
+```{r message=FALSE, warning=FALSE, paged.print=FALSE}
+library(tidyverse) # metapackage of all tidyverse packages
+library(stringr)
+library(tidytext)
+library(wordcloud)
+library(plyr)
+library(dplyr)
+library(ggplot2)
+
+library(tibble)
+library(maptools)
+library(RColorBrewer)
+library(sp)
+library(rgdal) # for spTransform
+library(gdata)
+library(sf)
+library("spData")
+library(syuzhet)
+library(stringr)
+library(stopwords) # stopwords_getsources(),stopwords(language = "en",source = "snowball")
+library(maps) # iso codes
+library(countrycode)
+library(rgeos)
+library(maptools)
+library(rworldmap)
+library(osmdata)
+library(viridis)
+
+```
+load data
+```{r}
+#tweets<- read.csv(file = 'covid_vaccine_tagged.csv')
+```
+
+get long and lat
+```{r}
+#for(i in 1:nrow(tweets)){
+#  coordinates = getbb(tweets$user_location[i],featuretype = "boundary", limit = 1, silent = FALSE)
+#  tweets$long[i] = (coordinates[1,1] + coordinates[1,2])/2
+#  tweets$lat[i] = (coordinates[2,1] + coordinates[2,2])/2
+#}
+#****
+#  The retrieved information (variable coordinates) is stored in new variables named lat and lon after calculating the middle of the square. 
+#The dataframe tweets will be moved into the dataframe points. 
+#The dataframe points will be formatted in a spatial operation (coordinates (points) <- ~long+lat). 
+#str(tweets)
+#points <- tweets
+#points$n <-NULL
+#points$user_location <-NULL
+#points <- points %>% drop_na()
+#head(points)
+#coordinates(points) <- ~long+lat
+
+```
+```{r}
+tweets<- read.csv(file = 'tweets_loc.csv')
+tweets<-tweets[complete.cases(tweets$Analysis), ]
+```
+
+```{r}
+options(repr.plot.width = 20, repr.plot.height = 30)
+
+## maps with dots
+ggplot(data = world) +
+geom_sf() +
+ggtitle("Twitter User Location")+
+geom_point(data= tweets,aes(x=long, y=lat, label=""))
+
+## heat map 1 (dots)
+
+ggplot(data = world) +
+geom_sf() +
+ggtitle("Twitter User Location - Heatmap")+
+stat_density2d(data= tweets, aes(x=long, y=lat),alpha=0.3, geom="polygon")
+
+```
+```{r}
+ggplot(data = world) + 
+geom_sf() +
+ggtitle("Twitter User Location - Heatmap")+
+geom_point(data= tweets, aes(x=long, y=lat), size=0.2)+
+stat_density2d(data= tweets, aes(x=long, y=lat,fill =..level..),alpha=0.3, geom="polygon")+
+scale_fill_distiller(palette = "Spectral", direction = -1)
+
+```
+```{r}
+#countriesSP <- getMap(resolution='low')
+#countriesSP <- getMap(resolution='high') #you could use high res map from rworldxtra if you were concerned about detail
+# convert our list of points to a SpatialPoints object
+#pointsSP = SpatialPoints(points, proj4string=CRS(" +proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs +towgs84=0,0,0"))
+#setting CRS directly to that from rworldmap
+#pointsSP = SpatialPoints(points, proj4string=CRS(proj4string(countriesSP))) 
+
+# use 'over' to get indices of the Polygons object containing each point 
+#indices = over(pointsSP, countriesSP)
+# return the ADMIN names of each country
+#indices$ADMIN  
+#indices$ISO3 # returns the ISO3 code 
+#indices$continent   # returns the continent (6 continent model)
+#indices$REGION   # returns the continent (7 continent model)
+#str(indices)
+#points$ISO_A2 <- indices$ISO_A2
+#points$ISO3 <- indices$ISO3
+#points$ADMIN  <- indices$ADMIN 
+```
+
+
+
+```{r}
+# 3.4 World Map Positive Negative per Country
+options(repr.plot.width = 30, repr.plot.height = 20)
+ggplot(data = world) + 
+geom_sf() +
+ggtitle("Twitter User Location and Sentiment")+
+geom_point(data= tweets, aes(x=long, y=lat,color = Analysis), size=0.2)+
+theme(panel.background = element_rect(fill = "lightsteelblue2"))
+```
+```{r}
+# 3.5 Europe Positive Negative per Country
+options(repr.plot.width = 30, repr.plot.height = 20)
+ggplot(data = world) + 
+geom_sf() +
+ggtitle("Twitter User Location and Sentiment in Europe")+
+coord_sf(xlim = c(-25,50), ylim = c(35,70), expand = TRUE)+
+#geom_text(data=tweets, aes(x=long, y=lat, label=Analysis), size=2.5)+
+stat_density2d(data= tweets, aes(x=long, y=lat,fill =..level..),alpha=0.3, geom="polygon")+
+geom_point(data= tweets, aes(x=long, y=lat,color = Analysis), size=0.2)+
+theme(panel.background = element_rect(fill = "lightsteelblue2"))
+```
+```{r}
+# 3.6 US Positive Negative per Country
+options(repr.plot.width = 30, repr.plot.height = 20)
+ggplot(data = world) + 
+geom_sf() +
+ggtitle("Twitter User Location and Sentiment in USA")+
+coord_sf(xlim = c(-171,-12), ylim = c(7,83), expand = FALSE)+
+stat_density2d(data= tweets, aes(x=long, y=lat,fill =..level..),alpha=0.2, geom="polygon")+
+geom_point(data= tweets, aes(x=long, y=lat,color = Analysis), size=0.2)+
+theme(panel.background = element_rect(fill = "lightsteelblue2"))
+```
+```{r}
+# 3.6 Asia Positive Negative per Country
+options(repr.plot.width = 30, repr.plot.height = 20)
+ggplot(data = world) + 
+geom_sf() +
+ggtitle("Twitter User Location and Sentiment in Asia")+
+coord_sf(xlim = c(30,180), ylim = c(-10,90), expand = FALSE)+
+stat_density2d(data= tweets, aes(x=long, y=lat,fill =..level..),alpha=0.2, geom="polygon")+
+geom_point(data= tweets, aes(x=long, y=lat,color = Analysis), size=0.2)+
+theme(panel.background = element_rect(fill = "lightsteelblue2"))
+```
+```{r}
+
+# 3.6 Africa Positive Negative per Country
+options(repr.plot.width = 30, repr.plot.height = 20)
+ggplot(data = world) + 
+geom_sf() +
+ggtitle("Twitter User Location and Sentiment in Africa")+
+coord_sf(xlim = c(-25,55), ylim = c(-35,35), expand = FALSE)+
+stat_density2d(data= tweets, aes(x=long, y=lat,fill =..level..),alpha=0.2, geom="polygon")+
+geom_point(data= tweets, aes(x=long, y=lat,color = Analysis), size=0.2)+
+theme(panel.background = element_rect(fill = "lightsteelblue2"))
+```
+
